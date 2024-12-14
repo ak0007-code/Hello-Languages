@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { WebhookRequestBody, WebhookEvent, messagingApi } from "@line/bot-sdk";
 const { MessagingApiClient } = messagingApi;
-// import crypto from "crypto";
 import OpenAI from "openai";
 import emojiRegex from "emoji-regex";
+// import crypto from "crypto";
 
 const channelAccessToken = process.env.LINE_CHANNEL_ACCESS_TOKEN || "";
 // const channelSecret = process.env.LINE_CHANNEL_SECRET || "";
@@ -56,46 +56,37 @@ async function handleGptEvent(userMessage: string) {
 async function handleLineEvent(event: WebhookEvent) {
   console.log({ event });
   if (event.type === "message" && event.message.type === "text") {
+    const userMessage = event.message.text;
+    const responseText = await handleGptEvent(userMessage);
+    const jsonData = extractJsonFromString(responseText || "");
+    const keys = Object.keys(jsonData);
+    let replyText = "";
+    keys.forEach((key) => {
+      const value = jsonData[key as keyof typeof jsonData];
+      if (key == "japanese") {
+        if (replyText == "") {
+          replyText = replyText + `🇯🇵 ${value}`;
+        } else {
+          replyText = replyText + `\n\n🇯🇵 ${value}`;
+        }
+      }
+      if (key == "english") {
+        if (replyText == "") {
+          replyText = replyText + `🇺🇸 ${value}`;
+        } else {
+          replyText = replyText + `\n\n🇺🇸 ${value}`;
+        }
+      }
+    });
     await lineClient.replyMessage({
       replyToken: event.replyToken,
       messages: [
         {
           type: "text",
-          text: "test",
+          text: replyText,
         },
       ],
     });
-    // const userMessage = event.message.text;
-    // const responseText = await handleGptEvent(userMessage);
-    // const jsonData = extractJsonFromString(responseText || "");
-    // const keys = Object.keys(jsonData);
-    // let replyText = "";
-    // keys.forEach((key) => {
-    //   const value = jsonData[key as keyof typeof jsonData];
-    //   if (key == "japanese") {
-    //     if (replyText == "") {
-    //       replyText = replyText + `🇯🇵 ${value}`;
-    //     } else {
-    //       replyText = replyText + `\n\n🇯🇵 ${value}`;
-    //     }
-    //   }
-    //   if (key == "english") {
-    //     if (replyText == "") {
-    //       replyText = replyText + `🇺🇸 ${value}`;
-    //     } else {
-    //       replyText = replyText + `\n\n🇺🇸 ${value}`;
-    //     }
-    //   }
-    // });
-    // await lineClient.replyMessage({
-    //   replyToken: event.replyToken,
-    //   messages: [
-    //     {
-    //       type: "text",
-    //       text: replyText,
-    //     },
-    //   ],
-    // });
   } else {
     console.log("Received an event:", event.type);
   }
