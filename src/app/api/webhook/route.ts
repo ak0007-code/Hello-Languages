@@ -2,12 +2,17 @@ import { NextResponse } from "next/server";
 import { WebhookRequestBody, WebhookEvent, messagingApi } from "@line/bot-sdk";
 const { MessagingApiClient } = messagingApi;
 import crypto from "crypto";
+import OpenAI from "openai";
 
 const channelAccessToken = process.env.LINE_CHANNEL_ACCESS_TOKEN || "";
 const channelSecret = process.env.LINE_CHANNEL_SECRET || "";
 
-const client = new MessagingApiClient({
+const lineClient = new MessagingApiClient({
   channelAccessToken: channelAccessToken,
+});
+
+const gptClient = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY || "", // This is the default and can be omitted
 });
 
 export async function POST(req: Request) {
@@ -23,17 +28,17 @@ export async function POST(req: Request) {
   }
   const events = body.events;
   for (const event of events) {
-    await handleEvent(event);
+    await handleLineEvent(event);
   }
   return NextResponse.json({ status: "ok" });
 }
 
-async function handleEvent(event: WebhookEvent) {
+async function handleLineEvent(event: WebhookEvent) {
   if (event.type === "message" && event.message.type === "text") {
     const userMessage = event.message.text;
-    const replyText = `🇯🇵 ${userMessage}`;
-
-    await client.replyMessage({
+    const responseText = await handleGptEvent();
+    const replyText = `🇯🇵 ${userMessage}, ${responseText}`;
+    await lineClient.replyMessage({
       replyToken: event.replyToken,
       messages: [
         {
@@ -45,4 +50,13 @@ async function handleEvent(event: WebhookEvent) {
   } else {
     console.log("Received an event:", event.type);
   }
+}
+
+async function handleGptEvent() {
+  const chatCompletion = await gptClient.chat.completions.create({
+    messages: [{ role: "user", content: "Say this is a test" }],
+    model: "gpt-4o",
+  });
+  const responseText = chatCompletion.choices[0].message.content;
+  return responseText;
 }
