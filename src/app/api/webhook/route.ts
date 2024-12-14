@@ -1,35 +1,3 @@
-// import { NextResponse } from "next/server";
-// import { middleware } from "@line/bot-sdk";
-
-// export async function POST(req: Request, res: Response) {
-//   try {
-//     return NextResponse.json({ status: 200 });
-//   } catch (e) {
-//     return NextResponse.json({ error: e }, { status: 500 });
-//   }
-// }
-
-// export async function GET(req: Request) {
-//   try {
-//     // リクエストのURLからクエリパラメータを取得（例: ?name=ChatGPT）
-//     const { searchParams } = new URL(req.url);
-//     const name = searchParams.get("name") || "World";
-
-//     // レスポンスとしてJSONを返す
-//     return NextResponse.json(
-//       { message: `Hello, ${name}!, ${process.env.LINE_CHANNEL_SECRET}` },
-//       { status: 200 }
-//     );
-//   } catch (e) {
-//     // エラーハンドリング
-//     console.error("APIエラー:", e);
-//     return NextResponse.json(
-//       { error: "Internal Server Error" },
-//       { status: 500 }
-//     );
-//   }
-// }
-
 import { NextResponse } from "next/server";
 import { WebhookRequestBody, WebhookEvent, messagingApi } from "@line/bot-sdk";
 const { MessagingApiClient } = messagingApi;
