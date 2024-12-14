@@ -56,7 +56,8 @@ async function handleLineEvent(event: WebhookEvent) {
   if (event.type === "message" && event.message.type === "text") {
     const userMessage = event.message.text;
     const responseText = await handleGptEvent(userMessage);
-    const replyText = `🇯🇵 ${userMessage}, ${responseText}`;
+    const jsonData = extractJsonFromString(responseText || "");
+    const replyText = `🇯🇵 ${userMessage}, ${jsonData}`;
     await lineClient.replyMessage({
       replyToken: event.replyToken,
       messages: [
@@ -68,6 +69,29 @@ async function handleLineEvent(event: WebhookEvent) {
     });
   } else {
     console.log("Received an event:", event.type);
+  }
+}
+
+function extractJsonFromString(input: string) {
+  // Define a regex pattern to match the JSON code block
+  const jsonCodeBlockPattern = /```json\s*([\s\S]*?)\s*```/;
+
+  // Execute the regex on the input string
+  const match = input.match(jsonCodeBlockPattern);
+
+  if (match && match[1]) {
+    const jsonString = match[1];
+    const jsonObject = JSON.parse(jsonString);
+    return jsonObject;
+    // try {
+    //   // Parse the JSON string
+    //   const jsonObject = JSON.parse(jsonString);
+    //   return jsonObject;
+    // } catch (error) {
+    //   throw new Error("Invalid JSON format.");
+    // }
+  } else {
+    throw new Error("No JSON code block found in the input string.");
   }
 }
 
