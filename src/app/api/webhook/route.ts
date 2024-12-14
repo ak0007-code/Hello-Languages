@@ -54,6 +54,7 @@ async function handleGptEvent(userMessage: string) {
 }
 
 async function handleLineEvent(event: WebhookEvent) {
+  console.log({ event });
   if (event.type === "message" && event.message.type === "text") {
     await lineClient.replyMessage({
       replyToken: event.replyToken,
