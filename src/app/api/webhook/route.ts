@@ -57,7 +57,28 @@ async function handleLineEvent(event: WebhookEvent) {
     const userMessage = event.message.text;
     const responseText = await handleGptEvent(userMessage);
     const jsonData = extractJsonFromString(responseText || "");
-    const replyText = `🇯🇵 ${userMessage}, ${jsonData}`;
+
+    const keys = Object.keys(jsonData);
+    let replyText = "";
+    keys.forEach((key) => {
+      const value = jsonData[key as keyof typeof jsonData];
+      if (key == "japanese") {
+        if (replyText == "") {
+          replyText = replyText + `🇯🇵 ${value}`;
+        } else {
+          replyText = replyText + `\n\n🇯🇵 ${value}`;
+        }
+      }
+      if (key == "english") {
+        if (replyText == "") {
+          replyText = replyText + `🇺🇸 ${value}`;
+        } else {
+          replyText = replyText + `\n\n🇺🇸 ${value}`;
+        }
+      }
+    });
+
+    // const replyText = `🇯🇵 ${userMessage}, ${jsonData}`;
     await lineClient.replyMessage({
       replyToken: event.replyToken,
       messages: [
@@ -73,33 +94,56 @@ async function handleLineEvent(event: WebhookEvent) {
 }
 
 function extractJsonFromString(input: string) {
-  // Define a regex pattern to match the JSON code block
   const jsonCodeBlockPattern = /```json\s*([\s\S]*?)\s*```/;
-
-  // Execute the regex on the input string
   const match = input.match(jsonCodeBlockPattern);
-
   if (match && match[1]) {
     const jsonString = match[1];
     const jsonObject = JSON.parse(jsonString);
     return jsonObject;
-    // try {
-    //   // Parse the JSON string
-    //   const jsonObject = JSON.parse(jsonString);
-    //   return jsonObject;
-    // } catch (error) {
-    //   throw new Error("Invalid JSON format.");
-    // }
   } else {
     throw new Error("No JSON code block found in the input string.");
   }
 }
 
-export async function GET(req: Request) {
+export async function GET() {
   try {
-    const { searchParams } = new URL(req.url);
-    const name = searchParams.get("name") || "World";
-    return NextResponse.json({ message: `Hello, ${name}!` }, { status: 200 });
+    const inputString = `
+        \`\`\`json
+        {
+        "japanese": "ここはどこですか？",
+        "english": "Where is this place?"
+        }
+        \`\`\`
+        `;
+    const jsonData = extractJsonFromString(inputString);
+    console.log("Extracted JSON Object:", jsonData);
+
+    // Extract keys in order
+    const keys = Object.keys(jsonData);
+
+    let responseText = "";
+
+    keys.forEach((key) => {
+      const value = jsonData[key as keyof typeof jsonData];
+      console.log(`Key: ${key}, Value: value`);
+      if (key == "japanese") {
+        if (responseText == "") {
+          responseText = responseText + `🇯🇵 ${value}`;
+        } else {
+          responseText = responseText + `\n\n🇯🇵 ${value}`;
+        }
+      }
+      if (key == "english") {
+        if (responseText == "") {
+          responseText = responseText + `🇺🇸 ${value}`;
+        } else {
+          responseText = responseText + `\n\n🇺🇸 ${value}`;
+        }
+      }
+    });
+    console.log({ responseText });
+
+    return NextResponse.json({ message: `Hello!` }, { status: 200 });
   } catch (e) {
     return NextResponse.json(
       { error: `Internal Server Error: ${e}` },
