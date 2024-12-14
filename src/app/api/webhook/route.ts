@@ -55,37 +55,46 @@ async function handleGptEvent(userMessage: string) {
 
 async function handleLineEvent(event: WebhookEvent) {
   if (event.type === "message" && event.message.type === "text") {
-    const userMessage = removeEmojis(event.message.text);
-    const responseText = await handleGptEvent(userMessage);
-    const jsonData = extractJsonFromString(responseText || "");
-    const keys = Object.keys(jsonData);
-    let replyText = "";
-    keys.forEach((key) => {
-      const value = jsonData[key as keyof typeof jsonData];
-      if (key == "japanese") {
-        if (replyText == "") {
-          replyText = replyText + `🇯🇵 ${value}`;
-        } else {
-          replyText = replyText + `\n\n🇯🇵 ${value}`;
-        }
-      }
-      if (key == "english") {
-        if (replyText == "") {
-          replyText = replyText + `🇺🇸 ${value}`;
-        } else {
-          replyText = replyText + `\n\n🇺🇸 ${value}`;
-        }
-      }
-    });
     await lineClient.replyMessage({
       replyToken: event.replyToken,
       messages: [
         {
           type: "text",
-          text: replyText,
+          text: "test",
         },
       ],
     });
+    // const userMessage = event.message.text;
+    // const responseText = await handleGptEvent(userMessage);
+    // const jsonData = extractJsonFromString(responseText || "");
+    // const keys = Object.keys(jsonData);
+    // let replyText = "";
+    // keys.forEach((key) => {
+    //   const value = jsonData[key as keyof typeof jsonData];
+    //   if (key == "japanese") {
+    //     if (replyText == "") {
+    //       replyText = replyText + `🇯🇵 ${value}`;
+    //     } else {
+    //       replyText = replyText + `\n\n🇯🇵 ${value}`;
+    //     }
+    //   }
+    //   if (key == "english") {
+    //     if (replyText == "") {
+    //       replyText = replyText + `🇺🇸 ${value}`;
+    //     } else {
+    //       replyText = replyText + `\n\n🇺🇸 ${value}`;
+    //     }
+    //   }
+    // });
+    // await lineClient.replyMessage({
+    //   replyToken: event.replyToken,
+    //   messages: [
+    //     {
+    //       type: "text",
+    //       text: replyText,
+    //     },
+    //   ],
+    // });
   } else {
     console.log("Received an event:", event.type);
   }
