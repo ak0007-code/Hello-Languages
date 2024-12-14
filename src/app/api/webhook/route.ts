@@ -27,16 +27,37 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
   }
   const events = body.events;
-  const responseText = await handleGptEvent();
+  //   const responseText = await handleGptEvent();
   for (const event of events) {
-    await handleLineEvent(event, responseText || "");
+    await handleLineEvent(event);
   }
   return NextResponse.json({ status: "ok" });
 }
 
-async function handleLineEvent(event: WebhookEvent, responseText: string) {
+async function handleGptEvent(userMessage: string) {
+  const chatCompletion = await gptClient.chat.completions.create({
+    messages: [
+      {
+        role: "system",
+        content:
+          //   'あなたは常にJSON形式で回答するアシスタントです。ユーザーからtextの内容がJSON形式で与えられます。textで日本語が与えられた場合はその日本語を必要があれば校閲・修正し、その日本語を英語に訳して次のフォーマットで返答してください。:\n{\n  "japanese": "japanese",\n"english": "english"\n}\nまたtextが英語で与えられた場合は同じように英語を校閲・修正しその英語を次のフォーマットで返答してください。:\n{\n  "english": "english",\n"japanese": "japanese"\n}\n他の形式での回答やコメントは一切行わず、必ず上記のJSON形式のみで返答してください。',
+          'You are an assistant that always responds in JSON format. Users provide the content in JSON format under the key "text". When the "text" is in Japanese, you should proofread and correct the Japanese as necessary, translate it into English, and respond in the following format:\n{\n "japanese": "japanese",\n "english": "english"\n}\nSimilarly, when the "text" is in English, you should proofread and correct the English, then respond in the following format:\n{\n "english": "english",\n "japanese": "japanese"\n}\nDo not provide responses or comments in any other format; always respond exclusively using the above JSON format.',
+      },
+      {
+        role: "user",
+        content: `{ "text": "${userMessage}" }`,
+      },
+    ],
+    model: "gpt-4o",
+  });
+  const responseText = chatCompletion.choices[0].message.content;
+  return responseText;
+}
+
+async function handleLineEvent(event: WebhookEvent) {
   if (event.type === "message" && event.message.type === "text") {
     const userMessage = event.message.text;
+    const responseText = await handleGptEvent(userMessage);
     const replyText = `🇯🇵 ${userMessage}, ${responseText}`;
     await lineClient.replyMessage({
       replyToken: event.replyToken,
@@ -50,25 +71,6 @@ async function handleLineEvent(event: WebhookEvent, responseText: string) {
   } else {
     console.log("Received an event:", event.type);
   }
-}
-
-async function handleGptEvent() {
-  const chatCompletion = await gptClient.chat.completions.create({
-    messages: [
-      {
-        role: "system",
-        content:
-          'あなたは常にJSON形式で回答するアシスタントです。ユーザーが行う質問もJSON形式で与えられます。質問への回答も以下の形式で返してください:\n{\n  "answer": "...回答..."\n}\n他の形式での回答やコメントは一切行わず、必ず上記のJSON形式のみで返答してください。',
-      },
-      {
-        role: "user",
-        content: '{ "question": "日本の首都はどこですか？" }',
-      },
-    ],
-    model: "gpt-4o",
-  });
-  const responseText = chatCompletion.choices[0].message.content;
-  return responseText;
 }
 
 export async function GET(req: Request) {
