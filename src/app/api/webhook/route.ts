@@ -31,20 +31,14 @@
 // }
 
 import { NextResponse } from "next/server";
-import { Client, WebhookRequestBody, WebhookEvent } from "@line/bot-sdk";
+import { WebhookRequestBody, WebhookEvent, messagingApi } from "@line/bot-sdk";
+const { MessagingApiClient } = messagingApi;
 import crypto from "crypto";
 
 const channelAccessToken = process.env.LINE_CHANNEL_ACCESS_TOKEN || "";
-const channelSecret = process.env.LINE_CHANNEL_SECRET || "";
 
-if (!channelAccessToken || !channelSecret) {
-  throw new Error("Missing LINE_CHANNEL_ACCESS_TOKEN or LINE_CHANNEL_SECRET");
-}
-
-// Create a new LINE Client
-const client = new Client({
-  channelAccessToken,
-  channelSecret,
+const client = new MessagingApiClient({
+  channelAccessToken: channelAccessToken,
 });
 
 export async function POST(req: Request) {
@@ -57,7 +51,7 @@ export async function POST(req: Request) {
   // 3. Verify the signature
   const bodyString = JSON.stringify(body);
   const hash = crypto
-    .createHmac("sha256", channelSecret)
+    .createHmac("sha256", channelAccessToken)
     .update(bodyString)
     .digest("base64");
 
@@ -81,11 +75,19 @@ async function handleEvent(event: WebhookEvent) {
   // Check the event type
   if (event.type === "message" && event.message.type === "text") {
     // If it's a text message, let's reply with something simple
-    const { replyToken } = event;
     const userMessage = event.message.text;
 
     const replyText = `You said: ${userMessage}`;
-    await client.replyMessage(replyToken, { type: "text", text: replyText });
+    // await client.replyMessage(replyToken, { type: "text", text: replyText });
+    await client.replyMessage({
+      replyToken: event.replyToken,
+      messages: [
+        {
+          type: "text",
+          text: replyText,
+        },
+      ],
+    });
   } else {
     // For other event types (e.g. follow, unfollow, join, leave, postback)
     // you can add custom logic here.
