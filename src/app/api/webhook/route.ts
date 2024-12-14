@@ -54,7 +54,17 @@ async function handleLineEvent(event: WebhookEvent, responseText: string) {
 
 async function handleGptEvent() {
   const chatCompletion = await gptClient.chat.completions.create({
-    messages: [{ role: "user", content: "Say this is a test" }],
+    messages: [
+      {
+        role: "system",
+        content:
+          'あなたは常にJSON形式で回答するアシスタントです。ユーザーが行う質問もJSON形式で与えられます。質問への回答も以下の形式で返してください:\n{\n  "answer": "...回答..."\n}\n他の形式での回答やコメントは一切行わず、必ず上記のJSON形式のみで返答してください。',
+      },
+      {
+        role: "user",
+        content: '{ "question": "日本の首都はどこですか？" }',
+      },
+    ],
     model: "gpt-4o",
   });
   const responseText = chatCompletion.choices[0].message.content;
