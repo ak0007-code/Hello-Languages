@@ -3,6 +3,7 @@ import { WebhookRequestBody, WebhookEvent, messagingApi } from "@line/bot-sdk";
 const { MessagingApiClient } = messagingApi;
 import crypto from "crypto";
 import OpenAI from "openai";
+import emojiRegex from "emoji-regex";
 
 const channelAccessToken = process.env.LINE_CHANNEL_ACCESS_TOKEN || "";
 const channelSecret = process.env.LINE_CHANNEL_SECRET || "";
@@ -54,10 +55,9 @@ async function handleGptEvent(userMessage: string) {
 
 async function handleLineEvent(event: WebhookEvent) {
   if (event.type === "message" && event.message.type === "text") {
-    const userMessage = event.message.text;
+    const userMessage = removeEmojis(event.message.text);
     const responseText = await handleGptEvent(userMessage);
     const jsonData = extractJsonFromString(responseText || "");
-
     const keys = Object.keys(jsonData);
     let replyText = "";
     keys.forEach((key) => {
@@ -77,8 +77,6 @@ async function handleLineEvent(event: WebhookEvent) {
         }
       }
     });
-
-    // const replyText = `🇯🇵 ${userMessage}, ${jsonData}`;
     await lineClient.replyMessage({
       replyToken: event.replyToken,
       messages: [
@@ -105,8 +103,16 @@ function extractJsonFromString(input: string) {
   }
 }
 
+function removeEmojis(input: string): string {
+  const regex = emojiRegex();
+  return input.replace(regex, " ");
+}
+
 export async function GET() {
   try {
+    const input = removeEmojis("ああ😅aa?？");
+    console.log({ input });
+    await handleGptEvent(input);
     const inputString = `
         \`\`\`json
         {
@@ -117,12 +123,9 @@ export async function GET() {
         `;
     const jsonData = extractJsonFromString(inputString);
     console.log("Extracted JSON Object:", jsonData);
-
     // Extract keys in order
     const keys = Object.keys(jsonData);
-
     let responseText = "";
-
     keys.forEach((key) => {
       const value = jsonData[key as keyof typeof jsonData];
       console.log(`Key: ${key}, Value: value`);
@@ -142,7 +145,6 @@ export async function GET() {
       }
     });
     console.log({ responseText });
-
     return NextResponse.json({ message: `Hello!` }, { status: 200 });
   } catch (e) {
     return NextResponse.json(
