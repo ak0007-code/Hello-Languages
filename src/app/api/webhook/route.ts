@@ -93,15 +93,31 @@ async function handleLineEvent(event: WebhookEvent) {
   }
 }
 
+// function extractJsonFromString(input: string) {
+//   const jsonCodeBlockPattern = /```json\s*([\s\S]*?)\s*```/;
+//   const match = input.match(jsonCodeBlockPattern);
+//   if (match && match[1]) {
+//     const jsonString = match[1];
+//     const jsonObject = JSON.parse(jsonString);
+//     return jsonObject;
+//   } else {
+//     throw new Error("No JSON code block found in the input string.");
+//   }
+// }
+
 function extractJsonFromString(input: string) {
-  const jsonCodeBlockPattern = /```json\s*([\s\S]*?)\s*```/;
-  const match = input.match(jsonCodeBlockPattern);
-  if (match && match[1]) {
-    const jsonString = match[1];
-    const jsonObject = JSON.parse(jsonString);
-    return jsonObject;
+  // This regex matches the first occurrence of a JSON object in the string
+  const jsonPattern = /{[^{}]*}/;
+  const match = input.match(jsonPattern);
+  if (match && match[0]) {
+    try {
+      const jsonObject = JSON.parse(match[0]);
+      return jsonObject;
+    } catch {
+      throw new Error("Found JSON string is invalid.");
+    }
   } else {
-    throw new Error("No JSON code block found in the input string.");
+    throw new Error("No JSON object found in the input string.");
   }
 }
 
