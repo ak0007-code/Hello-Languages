@@ -47,7 +47,7 @@ async function handleGptEvent(userMessage: string) {
         content: `{ "text": "${userMessage}" }`,
       },
     ],
-    model: "gpt-4o",
+    model: "gpt-3.5-turbo",
   });
   const responseText = chatCompletion.choices[0].message.content;
   return responseText;
