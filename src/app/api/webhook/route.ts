@@ -50,6 +50,7 @@ async function handleGptEvent(userMessage: string) {
     model: "gpt-3.5-turbo",
   });
   const responseText = chatCompletion.choices[0].message.content;
+  console.log({ responseText });
   return responseText;
 }
 
@@ -111,7 +112,7 @@ function removeEmojis(input: string): string {
 
 export async function GET() {
   try {
-    const input = removeEmojis("ああ😅aa?？");
+    const input = removeEmojis("こんにちは");
     console.log({ input });
     await handleGptEvent(input);
     const inputString = `
