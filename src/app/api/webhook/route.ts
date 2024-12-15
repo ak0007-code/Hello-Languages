@@ -14,19 +14,22 @@ const gptClient = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || "",
 });
 
-const SYSTEM_PROMPT = `
-You are an assistant that responds only in JSON format. Users send JSON with a "text" key. If "text" is in Japanese, correct and translate it to English, responding with:
-{
-  "japanese": "corrected Japanese",
-  "english": "translated English"
-}
-If "text" is in English, correct it and respond with:
-{
-  "english": "corrected English",
-  "japanese": "translated Japanese"
-}
-Do not use any other format.
-`;
+// const SYSTEM_PROMPT = `
+// You are an assistant that responds only in JSON format. Users send JSON with a "text" key. If "text" is in Japanese, correct and translate it to English, responding with:
+// {
+//   "japanese": "corrected Japanese",
+//   "english": "translated English"
+// }
+// If "text" is in English, correct it and respond with:
+// {
+//   "english": "corrected English",
+//   "japanese": "translated Japanese"
+// }
+// Do not use any other format.
+// `;
+
+const SYSTEM_PROMPT =
+  'You are an assistant that always responds in JSON format. Users provide the content in JSON format under the key "text". When the "text" is in Japanese, you should proofread and correct the Japanese as necessary, translate it into English, and respond in the following format:\n{\n "japanese": "japanese",\n "english": "english"\n}\nSimilarly, when the "text" is in English, you should proofread and correct the English, then respond in the following format:\n{\n "english": "english",\n "japanese": "japanese"\n}\nDo not provide responses or comments in any other format; always respond exclusively using the above JSON format.';
 
 export async function POST(req: Request) {
   const body = (await req.json()) as WebhookRequestBody;
@@ -43,7 +46,6 @@ async function handleGptEvent(userMessage: string) {
       {
         role: "system",
         content: SYSTEM_PROMPT,
-        // 'You are an assistant that always responds in JSON format. Users provide the content in JSON format under the key "text". When the "text" is in Japanese, you should proofread and correct the Japanese as necessary, translate it into English, and respond in the following format:\n{\n "japanese": "japanese",\n "english": "english"\n}\nSimilarly, when the "text" is in English, you should proofread and correct the English, then respond in the following format:\n{\n "english": "english",\n "japanese": "japanese"\n}\nDo not provide responses or comments in any other format; always respond exclusively using the above JSON format.',
       },
       {
         role: "user",
