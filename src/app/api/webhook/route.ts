@@ -3,10 +3,8 @@ import { WebhookRequestBody, WebhookEvent, messagingApi } from "@line/bot-sdk";
 const { MessagingApiClient } = messagingApi;
 import OpenAI from "openai";
 import emojiRegex from "emoji-regex";
-// import crypto from "crypto";
 
 const channelAccessToken = process.env.LINE_CHANNEL_ACCESS_TOKEN || "";
-// const channelSecret = process.env.LINE_CHANNEL_SECRET || "";
 
 const lineClient = new MessagingApiClient({
   channelAccessToken: channelAccessToken,
@@ -16,17 +14,22 @@ const gptClient = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || "",
 });
 
+const SYSTEM_PROMPT = `
+You are an assistant that responds only in JSON format. Users send JSON with a "text" key. If "text" is in Japanese, correct and translate it to English, responding with:
+{
+  "japanese": "corrected Japanese",
+  "english": "translated English"
+}
+If "text" is in English, correct it and respond with:
+{
+  "english": "corrected English",
+  "japanese": "translated Japanese"
+}
+Do not use any other format.
+`;
+
 export async function POST(req: Request) {
   const body = (await req.json()) as WebhookRequestBody;
-  // const signature = req.headers.get("X-Line-Signature") || "";
-  // const bodyString = JSON.stringify(body);
-  // const hash = crypto
-  //   .createHmac("sha256", channelSecret)
-  //   .update(bodyString)
-  //   .digest("base64");
-  // if (hash !== signature) {
-  //   return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
-  // }
   const events = body.events;
   for (const event of events) {
     await handleLineEvent(event);
@@ -39,8 +42,8 @@ async function handleGptEvent(userMessage: string) {
     messages: [
       {
         role: "system",
-        content:
-          'You are an assistant that always responds in JSON format. Users provide the content in JSON format under the key "text". When the "text" is in Japanese, you should proofread and correct the Japanese as necessary, translate it into English, and respond in the following format:\n{\n "japanese": "japanese",\n "english": "english"\n}\nSimilarly, when the "text" is in English, you should proofread and correct the English, then respond in the following format:\n{\n "english": "english",\n "japanese": "japanese"\n}\nDo not provide responses or comments in any other format; always respond exclusively using the above JSON format.',
+        content: SYSTEM_PROMPT,
+        // 'You are an assistant that always responds in JSON format. Users provide the content in JSON format under the key "text". When the "text" is in Japanese, you should proofread and correct the Japanese as necessary, translate it into English, and respond in the following format:\n{\n "japanese": "japanese",\n "english": "english"\n}\nSimilarly, when the "text" is in English, you should proofread and correct the English, then respond in the following format:\n{\n "english": "english",\n "japanese": "japanese"\n}\nDo not provide responses or comments in any other format; always respond exclusively using the above JSON format.',
       },
       {
         role: "user",
@@ -50,12 +53,10 @@ async function handleGptEvent(userMessage: string) {
     model: "gpt-3.5-turbo",
   });
   const responseText = chatCompletion.choices[0].message.content;
-  console.log({ responseText });
   return responseText;
 }
 
 async function handleLineEvent(event: WebhookEvent) {
-  console.log({ event });
   if (event.type === "message" && event.message.type === "text") {
     const userMessage = event.message.text;
     const responseText = await handleGptEvent(userMessage);
@@ -93,20 +94,7 @@ async function handleLineEvent(event: WebhookEvent) {
   }
 }
 
-// function extractJsonFromString(input: string) {
-//   const jsonCodeBlockPattern = /```json\s*([\s\S]*?)\s*```/;
-//   const match = input.match(jsonCodeBlockPattern);
-//   if (match && match[1]) {
-//     const jsonString = match[1];
-//     const jsonObject = JSON.parse(jsonString);
-//     return jsonObject;
-//   } else {
-//     throw new Error("No JSON code block found in the input string.");
-//   }
-// }
-
 function extractJsonFromString(input: string) {
-  // This regex matches the first occurrence of a JSON object in the string
   const jsonPattern = /{[^{}]*}/;
   const match = input.match(jsonPattern);
   if (match && match[0]) {
